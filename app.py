@@ -3,23 +3,30 @@ import json
 
 app = FastAPI()
 
-# Load JSON data once when the API starts
-with open("MData.json", "r") as f:
-    DATA = json.load(f)  
+@app.get("/")
+def root():
+    return {"message": "Summary API is running. Try /api/data or /api/summary"}
 
 @app.get("/api/data")
-def get_all_data():
-    return {"items": DATA}
+def get_data():
+    with open("MData.json", "r") as file:
+        data = json.load(file)
+    return {"data": data}
 
 @app.get("/api/summary")
 def get_summary():
-    total_events = len(DATA)
-    anomaly_rate = sum(1 for row in DATA if row["class"] != 0) / total_events
-    avg_pressure = sum(row["P-TPT"] for row in DATA) / total_events
+    with open("MData.json", "r") as file:
+        data = json.load(file)
+
+    total_events = len(data)
+    anomaly_count = sum(1 for item in data if item.get("class") != 0)
+    pressure_values = [item.get("P-TPT", 0) for item in data if "P-TPT" in item]
+
+    anomaly_rate = anomaly_count / total_events if total_events else 0
+    avg_pressure = sum(pressure_values) / len(pressure_values) if pressure_values else 0
 
     return {
         "totalEvents": total_events,
-        "anomalyRate": anomaly_rate,
-        "avgPressure": avg_pressure
+        "anomalyRate": round(anomaly_rate, 4),
+        "avgPressure": round(avg_pressure, 2)
     }
-print(">>> THIS IS THE CORRECT APP.PY <<<")
